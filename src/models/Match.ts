@@ -9,6 +9,7 @@ export interface IRound {
   player2Choice: Choice;
   player1Points: number;
   player2Points: number;
+  roundDeadline: Date;
 }
 
 export interface IMatch extends Document {
@@ -32,6 +33,7 @@ const RoundSchema = new Schema<IRound>({
   player2Choice: { type: String, enum: ["cooperate", "betray"] },
   player1Points: { type: Number, default: 0 },
   player2Points: { type: Number, default: 0 },
+  roundDeadline: { type: Date, required: true },
 });
 
 const MatchSchema: Schema<IMatch> = new Schema({

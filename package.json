@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@clerk/nextjs": "^7.0.6",
     "mongoose": "^9.3.1",
     "next": "16.2.0",
     "react": "19.2.4",
