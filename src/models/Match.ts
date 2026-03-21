@@ -9,7 +9,6 @@ export interface IRound {
   player2Choice: Choice;
   player1Points: number;
   player2Points: number;
-  roundDeadline: Date;
 }
 
 export interface IMatch extends Document {
@@ -20,6 +19,7 @@ export interface IMatch extends Document {
   player2Choice?: Choice;
   player1TotalPoints: number;            // cumulative across all rounds
   player2TotalPoints: number;
+  roundDeadline?: Date;
   status: MatchStatus;
   rounds: IRound[];
   currentRound: number;
@@ -33,7 +33,6 @@ const RoundSchema = new Schema<IRound>({
   player2Choice: { type: String, enum: ["cooperate", "betray"] },
   player1Points: { type: Number, default: 0 },
   player2Points: { type: Number, default: 0 },
-  roundDeadline: { type: Date, required: true },
 });
 
 const MatchSchema: Schema<IMatch> = new Schema({
@@ -44,11 +43,13 @@ const MatchSchema: Schema<IMatch> = new Schema({
   player2Choice: { type: String, enum: ["cooperate", "betray"] },
   player1TotalPoints: { type: Number, default: 0 },
   player2TotalPoints: { type: Number, default: 0 },
+  roundDeadline: { type: Date },
   status: { type: String, enum: ["waiting", "ongoing", "completed"], default: "waiting" },
   rounds: [RoundSchema],
   currentRound: { type: Number, default: 1 },
   totalRounds: { type: Number, default: 5 },
   createdAt: { type: Date, default: Date.now, expires: 86400 },
+
 });
 
 const Match: Model<IMatch> =

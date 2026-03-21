@@ -63,7 +63,6 @@ export async function POST(req: NextRequest) {
         player2Choice: match.player2Choice,
         player1Points,
         player2Points,
-        roundDeadline: new Date(Date.now() + 8 * 1000), //8 seconds
       });
 
       // Update cumulative match points
