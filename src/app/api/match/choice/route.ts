@@ -49,6 +49,56 @@ export async function POST(req: NextRequest) {
     if (isPlayer1) match.player1Choice = choice;
     if (isPlayer2) match.player2Choice = choice;
 
+    // --- BOT LOGIC INJECTION ---
+    const opponentId = isPlayer1 ? match.player2 : match.player1;
+    const opponent = await Player.findById(opponentId);
+    
+    if (opponent && opponent.sessionId.startsWith("bot_")) {
+      let botChoice: Choice = "cooperate"; // Default safety choice
+      
+      if (opponent.sessionId.startsWith("bot_rnd_")) {
+        // Random Bot: 50/50 Chance
+        botChoice = Math.random() > 0.5 ? "cooperate" : "betray";
+      } 
+      else if (opponent.sessionId.startsWith("bot_tft_")) {
+        // Tit for Tat: Copy human's previous move, always cooperate on round 1
+        if (match.currentRound === 1) {
+          botChoice = "cooperate";
+        } else {
+          // Look at the last round the human played
+          const lastRound = match.rounds[match.rounds.length - 1];
+          botChoice = isPlayer1 ? lastRound.player1Choice : lastRound.player2Choice;
+        }
+      }
+      else if (opponent.sessionId.startsWith("bot_grim_")) {
+        // Friedman (Grim Trigger): Cooperate until human betrays ONCE, then betray forever
+        let humanEverBetrayed = false;
+        for (const round of match.rounds) {
+          const humanChoice = isPlayer1 ? round.player1Choice : round.player2Choice;
+          if (humanChoice === "betray") {
+            humanEverBetrayed = true;
+            break;
+          }
+        }
+        botChoice = humanEverBetrayed ? "betray" : "cooperate";
+      }
+      else if (opponent.sessionId.startsWith("bot_pavlov_")) {
+        // Pavlov (Win-Stay, Lose-Shift): Cooperates on round 1.
+        // After that, if both players made the SAME choice in the previous round, it cooperates.
+        // If they made DIFFERENT choices, it betrays.
+        if (match.currentRound === 1) {
+          botChoice = "cooperate";
+        } else {
+          const lastRound = match.rounds[match.rounds.length - 1];
+          botChoice = (lastRound.player1Choice === lastRound.player2Choice) ? "cooperate" : "betray";
+        }
+      }
+
+      // Instantly lock in the bot's choice!
+      if (isPlayer1) match.player2Choice = botChoice;
+      else match.player1Choice = botChoice;
+    }
+
     // --- Resolve round if both submitted ---
     if (match.player1Choice && match.player2Choice) {
       const { player1Points, player2Points } = calculatePayoff(
@@ -81,6 +131,7 @@ export async function POST(req: NextRequest) {
         match.currentRound += 1;
         match.player1Choice = undefined;
         match.player2Choice = undefined;
+        match.roundDeadline = new Date(Date.now() + 8000);
       }
 
       await match.save();
