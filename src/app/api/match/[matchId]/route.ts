@@ -81,6 +81,22 @@ if (match.roundDeadline && new Date() > match.roundDeadline) {
     }
 
     await match.save();
+const bothSubmitted = !!(match.player1Choice && match.player2Choice);
+
+return NextResponse.json({
+  success: true,
+  status: match.status,
+  currentRound: match.currentRound,
+  totalRounds: match.totalRounds,
+  roundDeadline: match.roundDeadline,
+  myTotalPoints: isPlayer1 ? match.player1TotalPoints : match.player2TotalPoints,
+  opponentTotalPoints: isPlayer1 ? match.player2TotalPoints : match.player1TotalPoints,
+  myChoice: isPlayer1 ? match.player1Choice : match.player2Choice,
+  opponentChoice: bothSubmitted
+    ? isPlayer1 ? match.player2Choice : match.player1Choice
+    : null,
+  rounds: match.rounds,
+});
   }
 }
   } catch (error: unknown) {
@@ -94,4 +110,5 @@ export async function POST(
 ) {
   await connect();
   // submit choice logic here
+  
 }
