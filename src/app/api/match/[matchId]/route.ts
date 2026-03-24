@@ -6,11 +6,12 @@ import { calculatePayoff } from "@/lib/payoff";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { matchId: string } },
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
   await connect();
   // fetch match state + auto cooperate logic here
   try {
+    const { matchId } = await params;
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get("sessionId");
     if (!sessionId) {
@@ -19,7 +20,7 @@ export async function GET(
         { status: 400 },
       );
     }
-    const match = await Match.findById(params.matchId);
+    const match = await Match.findById(matchId);
     if (!match)
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
 

@@ -6,11 +6,12 @@ import Match from "@/models/Match";
 
 export async function GET(
   req: NextRequest,
-  { params }: { params: { roomCode: string } }
+  { params }: { params: Promise<{ roomCode: string }> }
 ) {
   await connect();
 
   try {
+    const { roomCode } = await params;
     const { searchParams } = new URL(req.url);
     const sessionId = searchParams.get("sessionId");
 
@@ -19,7 +20,7 @@ export async function GET(
     }
 
     // Find room
-    const room = await Room.findOne({ roomCode: params.roomCode.toUpperCase() });
+    const room = await Room.findOne({ roomCode: roomCode.toUpperCase() });
     if (!room) {
       return NextResponse.json({ error: "Room not found" }, { status: 404 });
     }

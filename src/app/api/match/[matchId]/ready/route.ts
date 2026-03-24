@@ -5,11 +5,12 @@ import Player from "@/models/Player";
 
 export async function POST(
   req: NextRequest,
-  { params }: { params: { matchId: string } },
+  { params }: { params: Promise<{ matchId: string }> },
 ) {
   await connect();
 
   try {
+    const { matchId } = await params;
     const body = await req.json().catch(() => ({}));
     const { sessionId } = body;
 
@@ -17,7 +18,7 @@ export async function POST(
       return NextResponse.json({ error: "sessionId is required" }, { status: 400 });
     }
 
-    const match = await Match.findById(params.matchId);
+    const match = await Match.findById(matchId);
     if (!match) {
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
     }
