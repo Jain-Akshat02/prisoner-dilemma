@@ -38,77 +38,89 @@ export async function GET(
       );
     }
     // Auto cooperate if deadline passed
-if (match.roundDeadline && new Date() > match.roundDeadline) {
-  let roundResolved = false;
+    if (match.roundDeadline && new Date() > match.roundDeadline) {
+      let roundResolved = false;
 
-  if (!match.player1Choice) {
-    match.player1Choice = "cooperate";
-    roundResolved = true;
-  }
-  if (!match.player2Choice) {
-    match.player2Choice = "cooperate";
-    roundResolved = true;
-  }
+      if (!match.player1Choice) {
+        match.player1Choice = "cooperate";
+        roundResolved = true;
+      }
+      if (!match.player2Choice) {
+        match.player2Choice = "cooperate";
+        roundResolved = true;
+      }
 
-  // Both choices now present — resolve round
-  if (roundResolved && match.player1Choice && match.player2Choice) {
-    const { player1Points, player2Points } = calculatePayoff(
-      match.player1Choice,
-      match.player2Choice
-    );
+      // Both choices now present — resolve round
+      if (roundResolved && match.player1Choice && match.player2Choice) {
+        const { player1Points, player2Points } = calculatePayoff(
+          match.player1Choice,
+          match.player2Choice
+        );
 
-    match.rounds.push({
-      roundNumber: match.currentRound,
-      player1Choice: match.player1Choice,
-      player2Choice: match.player2Choice,
-      player1Points,
-      player2Points,
+        match.rounds.push({
+          roundNumber: match.currentRound,
+          player1Choice: match.player1Choice,
+          player2Choice: match.player2Choice,
+          player1Points,
+          player2Points,
+        });
+
+        match.player1TotalPoints += player1Points;
+        match.player2TotalPoints += player2Points;
+
+        await Player.findByIdAndUpdate(match.player1, { $inc: { points: player1Points } });
+        await Player.findByIdAndUpdate(match.player2, { $inc: { points: player2Points } });
+
+        if (match.currentRound >= match.totalRounds) {
+          match.status = "completed";
+        } else {
+          match.currentRound += 1;
+          match.player1Choice = undefined;
+          match.player2Choice = undefined;
+          match.roundDeadline = new Date(Date.now() + 8 * 1000); // reset deadline
+        }
+
+        await match.save();
+        const bothSubmitted = !!(match.player1Choice && match.player2Choice);
+
+        return NextResponse.json({
+          success: true,
+          status: match.status,
+          currentRound: match.currentRound,
+          totalRounds: match.totalRounds,
+          roundDeadline: match.roundDeadline,
+          myTotalPoints: isPlayer1 ? match.player1TotalPoints : match.player2TotalPoints,
+          opponentTotalPoints: isPlayer1 ? match.player2TotalPoints : match.player1TotalPoints,
+          myChoice: isPlayer1 ? match.player1Choice : match.player2Choice,
+          opponentChoice: bothSubmitted
+            ? isPlayer1 ? match.player2Choice : match.player1Choice
+            : null,
+          rounds: match.rounds,
+        });
+      }
+    }
+    // If the deadline hasn't passed, we just return the current status of the game!
+    const bothSubmitted = !!(match.player1Choice && match.player2Choice);
+
+    return NextResponse.json({
+      success: true,
+      status: match.status,
+      currentRound: match.currentRound,
+      totalRounds: match.totalRounds,
+      roundDeadline: match.roundDeadline,
+      myTotalPoints: isPlayer1 ? match.player1TotalPoints : match.player2TotalPoints,
+      opponentTotalPoints: isPlayer1 ? match.player2TotalPoints : match.player1TotalPoints,
+      myChoice: isPlayer1 ? match.player1Choice : match.player2Choice,
+
+      // We only reveal the opponent's choice to the frontend AFTER both players have submitted,
+      // otherwise players could cheat and look at the network logs to see what the opponent picked!
+      opponentChoice: bothSubmitted
+        ? (isPlayer1 ? match.player2Choice : match.player1Choice)
+        : null,
+      rounds: match.rounds,
     });
 
-    match.player1TotalPoints += player1Points;
-    match.player2TotalPoints += player2Points;
-
-    await Player.findByIdAndUpdate(match.player1, { $inc: { points: player1Points } });
-    await Player.findByIdAndUpdate(match.player2, { $inc: { points: player2Points } });
-
-    if (match.currentRound >= match.totalRounds) {
-      match.status = "completed";
-    } else {
-      match.currentRound += 1;
-      match.player1Choice = undefined;
-      match.player2Choice = undefined;
-      match.roundDeadline = new Date(Date.now() + 8 * 1000); // reset deadline
-    }
-
-    await match.save();
-const bothSubmitted = !!(match.player1Choice && match.player2Choice);
-
-return NextResponse.json({
-  success: true,
-  status: match.status,
-  currentRound: match.currentRound,
-  totalRounds: match.totalRounds,
-  roundDeadline: match.roundDeadline,
-  myTotalPoints: isPlayer1 ? match.player1TotalPoints : match.player2TotalPoints,
-  opponentTotalPoints: isPlayer1 ? match.player2TotalPoints : match.player1TotalPoints,
-  myChoice: isPlayer1 ? match.player1Choice : match.player2Choice,
-  opponentChoice: bothSubmitted
-    ? isPlayer1 ? match.player2Choice : match.player1Choice
-    : null,
-  rounds: match.rounds,
-});
-  }
-}
   } catch (error: unknown) {
-  return NextResponse.json({ error: (error as Error).message }, { status: 500 });
-}
-}
-
-export async function POST(
-  req: NextRequest,
-  { params }: { params: { matchId: string } },
-) {
-  await connect();
-  // submit choice logic here
-  
+    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
+  }
 }
