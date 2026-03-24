@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-
+import Image from "next/image";
 // Types
 type Choice = "cooperate" | "betray";
 type Phase = "home" | "lobby" | "match";
@@ -60,6 +60,7 @@ async function api<T>(input: RequestInfo, init?: RequestInit): Promise<T> {
 }
 
 export default function Home() {
+  const [isMounted, setIsMounted] = useState(false);
   const [phase, setPhase] = useState<Phase>("home");
   const [playerName, setPlayerName] = useState("");
   const [joinCode, setJoinCode] = useState("");
@@ -72,6 +73,11 @@ export default function Home() {
   const [message, setMessage] = useState("Awaiting your command.");
   const [fatalError, setFatalError] = useState("");
   const [selectedChoice, setSelectedChoice] = useState<Choice | null>(null);
+  const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
 
   const countdownSeconds = useMemo(() => {
     if (!matchState?.roundDeadline) return null;
@@ -112,6 +118,15 @@ export default function Home() {
     setMessage("Connection severed. Ready for new sync.");
     setPhase("home");
   }, []);
+
+  function handleLogoClick() {
+    const inActiveGame = phase !== "home" || !!matchId || !!roomCode;
+    if (inActiveGame) {
+      setShowLeaveConfirm(true);
+      return;
+    }
+    setPhase("home");
+  }
 
   const syncRoom = useCallback(async () => {
     if (!roomCode || !sessionId) return;
@@ -257,6 +272,9 @@ export default function Home() {
   }
 
   return (
+    !isMounted ? (
+      <main className="min-h-screen bg-neutral-950" />
+    ) : (
     <main className="relative min-h-screen bg-neutral-950 font-sans text-neutral-200 selection:bg-cyan-500/30">
       {/* Background Animated Glitches / Gradients */}
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center overflow-hidden">
@@ -266,13 +284,30 @@ export default function Home() {
         <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_50%,#000_10%,transparent_80%)]" />
       </div>
 
-      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-12 md:px-12">
+      <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-6 md:px-12 md:py-8">
         {/* Header Ribbon */}
-        <header className="mb-12 flex flex-col items-center justify-between gap-6 md:flex-row">
+        <header className="mb-8 flex flex-col items-center justify-between gap-4 md:flex-row">
           <div className="text-center md:text-left">
-            <h1 className="bg-gradient-to-r from-cyan-400 via-fuchsia-400 to-indigo-400 bg-clip-text text-4xl font-black uppercase tracking-tighter text-transparent md:text-5xl">
-              prisoner's dilemma
-            </h1>
+          
+            <div className="flex items-center gap-3 p-4">
+      
+      {/* Logo → Clickable */}
+    <button onClick={handleLogoClick} className="overflow-hidden rounded-full ring-2 ring-cyan-500/40 transition hover:ring-cyan-300/80">
+    <Image
+      src="/logo.png"
+      alt="Game Logo"
+      width={150}
+      height={150}
+      className="object-cover"
+    />
+  </button>
+
+      {/* Game Name */}
+      <h1 className="text-2xl font-bold tracking-wide">
+        Prisoner's Dilemma
+      </h1>
+
+    </div>
             <p className="mt-2 text-sm font-light tracking-[0.2em] text-cyan-500/80 uppercase">
               Trust is a vulnerability
             </p>
@@ -624,7 +659,36 @@ export default function Home() {
             </div>
           </div>
         )}
+        {showLeaveConfirm && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm">
+            <div className="w-[92%] max-w-md rounded-2xl border border-fuchsia-400/40 bg-neutral-900/95 p-6 shadow-[0_0_40px_rgba(217,70,239,0.25)]">
+              <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-fuchsia-300">Warning</p>
+              <h3 className="mt-2 text-xl font-black text-white">Leave current game?</h3>
+              <p className="mt-2 text-sm text-neutral-300">
+                Your current room/match session will be cleared. You can still rejoin later with room code if it is active.
+              </p>
+              <div className="mt-6 flex gap-3">
+                <button
+                  onClick={() => setShowLeaveConfirm(false)}
+                  className="flex-1 rounded-xl border border-neutral-700 bg-neutral-800/80 px-4 py-2 text-sm font-bold uppercase tracking-wider text-neutral-200 transition hover:border-neutral-500"
+                >
+                  Stay
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLeaveConfirm(false);
+                    clearSession();
+                  }}
+                  className="flex-1 rounded-xl border border-red-500/60 bg-red-500/15 px-4 py-2 text-sm font-bold uppercase tracking-wider text-red-300 transition hover:bg-red-500/25"
+                >
+                  Leave
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </main>
+    )
   );
 }
