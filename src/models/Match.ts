@@ -25,6 +25,8 @@ export interface IMatch extends Document {
   currentRound: number;
   totalRounds: number;
   createdAt: Date;
+  player1Ready?: boolean;
+  player2Ready?: boolean;
 }
 
 const RoundSchema = new Schema<IRound>({
