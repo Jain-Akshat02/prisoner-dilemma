@@ -34,6 +34,8 @@ export async function GET(
     // Get all players in room for scoreboard
     const players = await Player.find({ roomId: room._id }).select("name points isReady");
 
+    const isHost = room.players[0].toString() === player._id.toString();
+
     // If game not started yet, return lobby state
     if (room.status === "waiting") {
       return NextResponse.json({
@@ -42,7 +44,7 @@ export async function GET(
         roomCode: room.roomCode,
         playerCount: room.players.length,
         maxPlayers: room.maxPlayers,
-        isHost: room.players[0].toString() === sessionId,
+        isHost,
         players,
       });
     }
@@ -61,7 +63,7 @@ export async function GET(
       status: room.status,
       roomCode: room.roomCode,
       matchId: myMatch?._id,         // frontend redirects to /match/[matchId]
-      isHost: room.players[0].toString() === sessionId,
+      isHost,
       players,                        // scoreboard
     });
 
