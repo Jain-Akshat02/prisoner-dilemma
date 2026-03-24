@@ -34,35 +34,49 @@ export async function POST(req: NextRequest) {
                 error: "atleast 2 players required"
             }, { status: 400 })
         }
-        //   // Pair them up and create the Match!
-        for (let i = 0; i < room.players.length; i += 2) {
-            const p1 = room.players[i];
-            let p2 = room.players[i + 1];
-            if (!p2) {
-                // Randomly select one of the four bot strategies!
-                const botTypes = ["bot_tft_", "bot_rnd_", "bot_grim_", "bot_pavlov_"];
-                const pick = botTypes[Math.floor(Math.random() * botTypes.length)];
 
-                const botPlayer = await Player.create({
-                    name: "The Bot", // Hide the fact that it is a bot to human players
-                    sessionId: pick + crypto.randomUUID(),
-                    points: 0,
-                    gamesPlayed: 0,
-                });
-                p2 = botPlayer._id;
-            }
-            const match = await Match.create({
-                roomId: room._id,
-                player1: p1,
-                player2: p2,
-                status: "ongoing", // Since 2 players are here, the match begins.
-                currentRound: 1,
-                totalRounds: 10,
-                player1TotalPoints: 0,
-                player2TotalPoints: 0,
-                roundDeadline: new Date(Date.now() + 8000)
+        // 4. If players are odd, add a bot to make it even
+        if (room.players.length % 2 !== 0) {
+            const botTypes = ["bot_tft_", "bot_rnd_", "bot_grim_", "bot_pavlov_"];
+            const pick = botTypes[Math.floor(Math.random() * botTypes.length)];
+
+            const botPlayer = await Player.create({
+                name: "The Bot",
+                sessionId: pick + crypto.randomUUID(),
+                points: 0,
+                gamesPlayed: 0,
             });
-            room.matches.push(match._id);
+            room.players.push(botPlayer._id);
+        }
+
+        // 5. Generate Round-Robin Pairs using Circle Method
+        const players = room.players;
+        const numPlayers = players.length;
+        const numRounds = numPlayers - 1;
+        const halfSize = numPlayers / 2;
+        
+        const rotationIndices = Array.from({ length: numPlayers }, (_, i) => i);
+        
+        for (let round = 0; round < numRounds; round++) {
+            for (let i = 0; i < halfSize; i++) {
+                const p1Index = rotationIndices[i];
+                const p2Index = rotationIndices[numPlayers - 1 - i];
+                
+                const match = await Match.create({
+                    roomId: room._id,
+                    player1: players[p1Index],
+                    player2: players[p2Index],
+                    status: "waiting", // matches start waiting
+                    currentRound: 1,
+                    totalRounds: 10,
+                    player1TotalPoints: 0,
+                    player2TotalPoints: 0
+                });
+                room.matches.push(match._id);
+            }
+            // Rotate the indices (exclude the first element at index 0)
+            const lastIndex = rotationIndices.pop() as number;
+            rotationIndices.splice(1, 0, lastIndex);
         }
         room.status = "ongoing";
         await room.save();
