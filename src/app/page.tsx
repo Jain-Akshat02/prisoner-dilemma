@@ -218,11 +218,11 @@ export default function Home() {
           body: JSON.stringify({ roomCode: joinCode.trim().toUpperCase(), playerName }),
         }
       );
-      const nextMatchId = data.matchId ? String(data.matchId) : "";
-      setRoomCode(data.roomCode); setSessionId(data.sessionId); setMatchId(nextMatchId);
-      persistSession({ roomCode: data.roomCode, sessionId: data.sessionId, matchId: nextMatchId, playerName });
-      setMessage(data.message);
-      setPhase(nextMatchId ? "match" : "lobby");
+      // const nextMatchId = data.matchId ? String(data.matchId) : "";
+      // setRoomCode(data.roomCode); setSessionId(data.sessionId); setMatchId(nextMatchId);
+      // persistSession({ roomCode: data.roomCode, sessionId: data.sessionId, matchId: nextMatchId, playerName });
+      // setMessage(data.message);
+      // setPhase(nextMatchId ? "match" : "lobby");
     } catch (error: unknown) { setFatalError(getErrorMessage(error)); } finally { setLoading(false); }
   }
 
