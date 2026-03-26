@@ -20,6 +20,7 @@ export interface IMatch extends Document {
   player1TotalPoints: number;            // cumulative across all rounds
   player2TotalPoints: number;
   roundDeadline?: Date;
+  resolvedRoundNumber: number;
   status: MatchStatus;
   rounds: IRound[];
   currentRound: number;
@@ -49,6 +50,7 @@ const MatchSchema: Schema<IMatch> = new Schema({
   status: { type: String, enum: ["waiting", "ongoing", "completed"], default: "waiting" },
   rounds: [RoundSchema],
   currentRound: { type: Number, default: 1 },
+  resolvedRoundNumber: { type: Number, default: 0 },
   totalRounds: { type: Number, default: 5 },
   createdAt: { type: Date, default: Date.now, expires: 86400 },
 

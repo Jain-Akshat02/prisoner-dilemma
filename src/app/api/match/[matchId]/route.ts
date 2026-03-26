@@ -38,90 +38,91 @@ export async function GET(
         { status: 403 },
       );
     }
+    const intendedRound = match.currentRound;
     // Auto cooperate if deadline passed
     if (match.roundDeadline && new Date() > match.roundDeadline) {
-      let roundResolved = false;
 
       if (!match.player1Choice) {
         match.player1Choice = "cooperate";
-        roundResolved = true;
+
       }
       if (!match.player2Choice) {
         match.player2Choice = "cooperate";
-        roundResolved = true;
+
       }
 
       // Both choices now present — resolve round
-      if (roundResolved && match.player1Choice && match.player2Choice) {
+      if (match.player1Choice && match.player2Choice) {
         const { player1Points, player2Points } = calculatePayoff(
           match.player1Choice,
-          match.player2Choice
+          match.player2Choice,
         );
-
-        match.rounds.push({
-          roundNumber: match.currentRound,
-          player1Choice: match.player1Choice,
-          player2Choice: match.player2Choice,
-          player1Points,
-          player2Points,
+        const resolveResult = await Match.findOneAndUpdate(
+          {
+            _id: matchId,
+            currentRound: intendedRound, // round must still be same
+            resolvedRoundNumber: { $lt: intendedRound }, // round must NOT be resolved yet
+          },
+          {
+            $set: {
+              resolvedRoundNumber: intendedRound,
+              ...(intendedRound >= match.totalRounds
+                ? { status: "completed" }
+                : {
+                    currentRound: intendedRound + 1,
+                    roundDeadline: new Date(Date.now() + 8000),
+                  }),
+            },
+            $push: {
+              rounds: {
+                roundNumber: match.currentRound,
+                player1Choice: match.player1Choice,
+                player2Choice: match.player2Choice,
+                player1Points,
+                player2Points,
+              },
+            },
+            $inc: {
+              player1TotalPoints: player1Points,
+              player2TotalPoints: player2Points,
+            },
+            $unset: { player1Choice: "", player2Choice: "" }, // clear choices for next round
+          },
+          { new: true }
+        );
+        if (!resolveResult) return NextResponse.json({ success: true });
+        await Player.findByIdAndUpdate(match.player1, {
+          $inc: { points: player1Points },
         });
-
-        match.player1TotalPoints += player1Points;
-        match.player2TotalPoints += player2Points;
-
-        await Player.findByIdAndUpdate(match.player1, { $inc: { points: player1Points } });
-        await Player.findByIdAndUpdate(match.player2, { $inc: { points: player2Points } });
-
-        if (match.currentRound >= match.totalRounds) {
-          match.status = "completed";
-        } else {
-          match.currentRound += 1;
-          match.player1Choice = undefined;
-          match.player2Choice = undefined;
-          match.roundDeadline = new Date(Date.now() + 8 * 1000); // reset deadline
-        }
-
-        await match.save();
-        const bothSubmitted = !!(match.player1Choice && match.player2Choice);
+        await Player.findByIdAndUpdate(match.player2, {
+          $inc: { points: player2Points },
+        });
+        const bothSubmitted = !!(resolveResult.player1Choice && resolveResult.player2Choice);
 
         return NextResponse.json({
           success: true,
-          status: match.status,
-          currentRound: match.currentRound,
-          totalRounds: match.totalRounds,
-          roundDeadline: match.roundDeadline,
-          myTotalPoints: isPlayer1 ? match.player1TotalPoints : match.player2TotalPoints,
-          opponentTotalPoints: isPlayer1 ? match.player2TotalPoints : match.player1TotalPoints,
-          myChoice: isPlayer1 ? match.player1Choice : match.player2Choice,
+          status: resolveResult.status,
+          currentRound: resolveResult.currentRound,
+          totalRounds: resolveResult.totalRounds,
+          roundDeadline: resolveResult.roundDeadline,
+          myTotalPoints: isPlayer1
+            ? resolveResult.player1TotalPoints
+            : resolveResult.player2TotalPoints,
+          opponentTotalPoints: isPlayer1
+            ? resolveResult.player2TotalPoints
+            : resolveResult.player1TotalPoints,
+          myChoice: isPlayer1 ? resolveResult.player1Choice : resolveResult.player2Choice,
           opponentChoice: bothSubmitted
-            ? isPlayer1 ? match.player2Choice : match.player1Choice
+            ? isPlayer1
+              ? resolveResult.player2Choice
+              : resolveResult.player1Choice
             : null,
-          rounds: match.rounds,
+          rounds: resolveResult.rounds,
         });
       }
+      
     }
-    // If the deadline hasn't passed, we just return the current status of the game!
-    const bothSubmitted = !!(match.player1Choice && match.player2Choice);
-
-    return NextResponse.json({
-      success: true,
-      status: match.status,
-      currentRound: match.currentRound,
-      totalRounds: match.totalRounds,
-      roundDeadline: match.roundDeadline,
-      myTotalPoints: isPlayer1 ? match.player1TotalPoints : match.player2TotalPoints,
-      opponentTotalPoints: isPlayer1 ? match.player2TotalPoints : match.player1TotalPoints,
-      myChoice: isPlayer1 ? match.player1Choice : match.player2Choice,
-
-      // We only reveal the opponent's choice to the frontend AFTER both players have submitted,
-      // otherwise players could cheat and look at the network logs to see what the opponent picked!
-      opponentChoice: bothSubmitted
-        ? (isPlayer1 ? match.player2Choice : match.player1Choice)
-        : null,
-      rounds: match.rounds,
-    });
-
-  } catch (error: unknown) {
-    return NextResponse.json({ error: (error as Error).message }, { status: 500 });
-  }
+} catch {
+  return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+}
 }

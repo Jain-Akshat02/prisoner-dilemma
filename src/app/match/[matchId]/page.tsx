@@ -10,6 +10,7 @@ export default function MatchPage() {
   const matchId = params?.matchId || "";
   const [sessionId, setSessionId] = useState("");
   const [state, setState] = useState<MatchState | null>(null);
+  const [now, setNow] = useState(() => Date.now());
   const [error, setError] = useState("");
   const [status, setStatus] = useState("Battle in progress.");
   const [loading, setLoading] = useState(false);
@@ -42,11 +43,17 @@ export default function MatchPage() {
     return () => clearInterval(id);
   }, [syncMatch]);
 
+  // Keep the countdown "Timer" stat updated even when match polling doesn't change the deadline value.
+  useEffect(() => {
+    const id = setInterval(() => setNow(Date.now()), 250);
+    return () => clearInterval(id);
+  }, []);
+
   const timer = useMemo(() => {
     if (!state?.roundDeadline) return "-";
-    const diff = new Date(state.roundDeadline).getTime() - Date.now();
+    const diff = new Date(state.roundDeadline).getTime() - now;
     return `${Math.max(0, Math.ceil(diff / 1000))}s`;
-  }, [state?.roundDeadline, state?.currentRound]);
+  }, [state?.roundDeadline, state?.currentRound, now]);
 
   async function readyUp() {
     if (!sessionId) return;

@@ -211,19 +211,6 @@ export default function Home() {
   async function handleJoinRoom() {
     if (!joinCode.trim() || !playerName.trim()) return setFatalError("Callsign and Access Code required.");
     setLoading(true); setFatalError("");
-    try {
-      const data = await api<{ roomCode: string; sessionId: string; matchId?: string; message: string }>(
-        "/api/room/join", {
-          method: "POST", headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ roomCode: joinCode.trim().toUpperCase(), playerName }),
-        }
-      );
-      // const nextMatchId = data.matchId ? String(data.matchId) : "";
-      // setRoomCode(data.roomCode); setSessionId(data.sessionId); setMatchId(nextMatchId);
-      // persistSession({ roomCode: data.roomCode, sessionId: data.sessionId, matchId: nextMatchId, playerName });
-      // setMessage(data.message);
-      // setPhase(nextMatchId ? "match" : "lobby");
-    } catch (error: unknown) { setFatalError(getErrorMessage(error)); } finally { setLoading(false); }
   }
 
   async function handleStartGame() {
