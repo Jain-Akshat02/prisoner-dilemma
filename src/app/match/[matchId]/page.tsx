@@ -97,7 +97,7 @@ export default function MatchPage() {
 
   return (
     <main className="relative min-h-screen overflow-hidden bg-slate-950 text-slate-100">
-      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,_rgba(244,114,182,0.12),_transparent_40%),radial-gradient(circle_at_bottom_left,_rgba(34,211,238,0.15),_transparent_45%)]" />
+      <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(244,114,182,0.12),transparent_40%),radial-gradient(circle_at_bottom_left,rgba(34,211,238,0.15),transparent_45%)]]" />
       <div className="relative mx-auto max-w-6xl px-4 py-8 md:px-8">
         <header className="mb-6 rounded-2xl border border-white/10 bg-white/5 p-4">
           <p className="text-xs uppercase tracking-[0.25em] text-fuchsia-300">Match</p>
@@ -128,14 +128,14 @@ export default function MatchPage() {
               <button
                 onClick={() => submitChoice("cooperate")}
                 disabled={loading || state?.status !== "ongoing" || !!state?.myChoice}
-                className="rounded-xl bg-gradient-to-r from-emerald-400 to-lime-400 px-4 py-2 font-semibold text-slate-950 disabled:opacity-50"
+                className="rounded-xl bg-linear-to-r from-emerald-400 to-lime-400 px-4 py-2 font-semibold text-slate-950 disabled:opacity-50"
               >
                 Cooperate
               </button>
               <button
                 onClick={() => submitChoice("betray")}
                 disabled={loading || state?.status !== "ongoing" || !!state?.myChoice}
-                className="rounded-xl bg-gradient-to-r from-rose-400 to-red-500 px-4 py-2 font-semibold text-slate-950 disabled:opacity-50"
+                className="rounded-xl bg-linear-to-r from-rose-400 to-red-500 px-4 py-2 font-semibold text-slate-950 disabled:opacity-50"
               >
                 Betray
               </button>
@@ -144,7 +144,7 @@ export default function MatchPage() {
 
           <div className="rounded-3xl border border-white/10 bg-slate-900/70 p-6">
             <h3 className="text-lg font-semibold">Round Log</h3>
-            <div className="mt-4 max-h-[420px] space-y-2 overflow-auto pr-1">
+            <div className="mt-4 max-h-105 space-y-2 overflow-auto pr-1">
               {(state?.rounds || []).map((round) => (
                 <div key={round.roundNumber} className="rounded-xl border border-white/10 bg-white/5 p-3 text-sm">
                   <p className="font-semibold">Round {round.roundNumber}</p>
