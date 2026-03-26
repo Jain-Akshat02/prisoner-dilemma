@@ -31,8 +31,9 @@ export async function GET(
       return NextResponse.json({ error: "Player not found" }, { status: 404 });
     }
 
-    // Get all players in room for scoreboard
-    const players = await Player.find({ roomId: room._id }).select("name points isReady");
+    // Get all players in this room for the lobby scoreboard.
+    // Players are linked from Room via `room.players` (array of Player _ids).
+    const players = await Player.find({ _id: { $in: room.players } }).select("name points");
 
     const isHost = room.players[0].toString() === player._id.toString();
 

@@ -20,7 +20,7 @@ export async function GET(
         { status: 400 },
       );
     }
-    const match = await Match.findById(matchId);
+    let match = await Match.findById(matchId);
     if (!match)
       return NextResponse.json({ error: "Match not found" }, { status: 404 });
 
@@ -90,38 +90,60 @@ export async function GET(
           },
           { new: true }
         );
-        if (!resolveResult) return NextResponse.json({ success: true });
-        await Player.findByIdAndUpdate(match.player1, {
-          $inc: { points: player1Points },
-        });
-        await Player.findByIdAndUpdate(match.player2, {
-          $inc: { points: player2Points },
-        });
-        const bothSubmitted = !!(resolveResult.player1Choice && resolveResult.player2Choice);
+        if (!resolveResult) {
+          // Another request already resolved this round. Reload and fall back to normal response.
+          match = await Match.findById(matchId);
+          if (!match) return NextResponse.json({ error: "Match not found" }, { status: 404 });
+        } else {
+          await Player.findByIdAndUpdate(match.player1, {
+            $inc: { points: player1Points },
+          });
+          await Player.findByIdAndUpdate(match.player2, {
+            $inc: { points: player2Points },
+          });
 
-        return NextResponse.json({
-          success: true,
-          status: resolveResult.status,
-          currentRound: resolveResult.currentRound,
-          totalRounds: resolveResult.totalRounds,
-          roundDeadline: resolveResult.roundDeadline,
-          myTotalPoints: isPlayer1
-            ? resolveResult.player1TotalPoints
-            : resolveResult.player2TotalPoints,
-          opponentTotalPoints: isPlayer1
-            ? resolveResult.player2TotalPoints
-            : resolveResult.player1TotalPoints,
-          myChoice: isPlayer1 ? resolveResult.player1Choice : resolveResult.player2Choice,
-          opponentChoice: bothSubmitted
-            ? isPlayer1
-              ? resolveResult.player2Choice
-              : resolveResult.player1Choice
-            : null,
-          rounds: resolveResult.rounds,
-        });
+          const bothSubmitted = !!(resolveResult.player1Choice && resolveResult.player2Choice);
+
+          return NextResponse.json({
+            success: true,
+            status: resolveResult.status,
+            currentRound: resolveResult.currentRound,
+            totalRounds: resolveResult.totalRounds,
+            roundDeadline: resolveResult.roundDeadline,
+            myTotalPoints: isPlayer1
+              ? resolveResult.player1TotalPoints
+              : resolveResult.player2TotalPoints,
+            opponentTotalPoints: isPlayer1
+              ? resolveResult.player2TotalPoints
+              : resolveResult.player1TotalPoints,
+            myChoice: isPlayer1 ? resolveResult.player1Choice ?? null : resolveResult.player2Choice ?? null,
+            opponentChoice: bothSubmitted
+              ? isPlayer1
+                ? resolveResult.player2Choice ?? null
+                : resolveResult.player1Choice ?? null
+              : null,
+            rounds: resolveResult.rounds,
+          });
+        }
       }
       
     }
+
+    // Normal non-deadline path (or deadline passed but another request resolved first).
+    const bothSubmitted = !!(match.player1Choice && match.player2Choice);
+
+    return NextResponse.json({
+      success: true,
+      status: match.status,
+      currentRound: match.currentRound,
+      totalRounds: match.totalRounds,
+      roundDeadline: match.roundDeadline,
+      myTotalPoints: isPlayer1 ? match.player1TotalPoints : match.player2TotalPoints,
+      opponentTotalPoints: isPlayer1 ? match.player2TotalPoints : match.player1TotalPoints,
+      myChoice: isPlayer1 ? match.player1Choice ?? null : match.player2Choice ?? null,
+      opponentChoice: bothSubmitted ? (isPlayer1 ? match.player2Choice ?? null : match.player1Choice ?? null) : null,
+      rounds: match.rounds,
+    });
 } catch {
   return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
 }
