@@ -291,7 +291,7 @@ export default function Home() {
         <div className="absolute top-[-10%] left-[-10%] h-[50vw] w-[50vw] rounded-full bg-cyan-900/20 blur-[150px]" />
         <div className="absolute bottom-[-10%] right-[-10%] h-[50vw] w-[50vw] rounded-full bg-fuchsia-900/10 blur-[150px]" />
         {/* Subtle grid pattern */}
-        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-[size:60px_60px] [mask-image:radial-gradient(ellipse_100%_100%_at_50%_50%,#000_10%,transparent_80%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(to_right,#ffffff08_1px,transparent_1px),linear-gradient(to_bottom,#ffffff08_1px,transparent_1px)] bg-size-[60px_60px] [radial-gradient(ellipse_100%_100%_at_50%_50%,#000_10%,transparent_80%)]" />
       </div>
 
       <div className="relative z-10 mx-auto flex min-h-screen max-w-7xl flex-col px-6 py-6 md:px-12 md:py-8">
@@ -331,10 +331,10 @@ export default function Home() {
               </div>
               <button
                 onClick={clearSession}
-                className="group relative overflow-hidden rounded-full border border-red-500/30 bg-red-500/10 px-6 py-2 pb-[10px] text-xs font-bold tracking-widest text-red-400 uppercase transition-all hover:bg-red-500/20 hover:text-red-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
+                className="group relative overflow-hidden rounded-full border border-red-500/30 bg-red-500/10 px-6 py-2 pb-2.5 text-xs font-bold tracking-widest text-red-400 uppercase transition-all hover:bg-red-500/20 hover:text-red-300 hover:shadow-[0_0_15px_rgba(239,68,68,0.2)]"
               >
                 Abort
-                <div className="absolute bottom-0 left-0 h-[2px] w-full bg-red-400/50 scale-x-0 transition-transform group-hover:scale-x-100" />
+                <div className="absolute bottom-0 left-0 h-0.5 w-full bg-red-400/50 scale-x-0 transition-transform group-hover:scale-x-100" />
               </button>
             </div>
           )}
@@ -379,7 +379,7 @@ export default function Home() {
                   <button
                     onClick={handleCreateRoom}
                     disabled={loading || !playerName}
-                    className="relative w-full overflow-hidden rounded-xl bg-cyan-500 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%,100%_100%] bg-[position:100%_0,0_0] bg-no-repeat px-4 py-4 font-bold tracking-widest text-cyan-950 uppercase shadow-[0_0_20px_rgba(34,211,238,0.3)] transition-all hover:bg-cyan-400 hover:bg-[position:0_0,0_0] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] disabled:opacity-50"
+                    className="relative w-full overflow-hidden rounded-xl bg-cyan-500 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-position-[100%_0,0_0] bg-no-repeat px-4 py-4 font-bold tracking-widest text-cyan-950 uppercase shadow-[0_0_20px_rgba(34,211,238,0.3)] transition-all hover:bg-cyan-400 hover:bg-position-[0_0,0_0] hover:shadow-[0_0_30px_rgba(34,211,238,0.6)] disabled:opacity-50"
                   >
                     Initialize Matrix
                   </button>
