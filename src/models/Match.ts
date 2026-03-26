@@ -53,6 +53,8 @@ const MatchSchema: Schema<IMatch> = new Schema({
   resolvedRoundNumber: { type: Number, default: 0 },
   totalRounds: { type: Number, default: 5 },
   createdAt: { type: Date, default: Date.now, expires: 86400 },
+  player1Ready: {type: Boolean, default: false},
+  player2Ready: {type: Boolean, default: false}
 
 });
 
