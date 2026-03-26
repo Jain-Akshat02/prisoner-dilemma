@@ -67,7 +67,7 @@ export async function POST(
     if (p1Ready && p2Ready && match.status === "waiting") {
       match.status = "ongoing";
       // First round deadline starts NOW
-      match.roundDeadline = new Date(Date.now() + 8000);
+      match.roundDeadline = new Date(Date.now() + 13000);
       matchStarted = true;
     }
 

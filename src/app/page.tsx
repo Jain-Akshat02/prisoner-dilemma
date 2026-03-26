@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
 // Types
 type Choice = "cooperate" | "betray";
@@ -75,24 +75,28 @@ export default function Home() {
   const [selectedChoice, setSelectedChoice] = useState<Choice | null>(null);
   const [showLeaveConfirm, setShowLeaveConfirm] = useState(false);
 
+  const [now, setNow] = useState(() => Date.now());
+  const [roundAnnounce, setRoundAnnounce] = useState<number | null>(null);
+  const lastRoundCount = useRef(0);
+  const announceTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
+
   useEffect(() => {
     setIsMounted(true);
+    const id = setInterval(() => setNow(Date.now()), 100);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (announceTimeout.current) clearTimeout(announceTimeout.current);
+    };
   }, []);
 
   const countdownSeconds = useMemo(() => {
     if (!matchState?.roundDeadline) return null;
-    const diff = new Date(matchState.roundDeadline).getTime() - Date.now();
+    const diff = new Date(matchState.roundDeadline).getTime() - now;
     return Math.max(0, Math.ceil(diff / 1000));
-  }, [matchState?.roundDeadline, matchState?.currentRound, matchState?.status]);
-
-  // Force re-renders every second for the countdown
-  useEffect(() => {
-    if (phase !== "match" || !matchState?.roundDeadline) return;
-    const id = setInterval(() => {
-        setLoading(l => l); // trigger render
-    }, 1000);
-    return () => clearInterval(id);
-  }, [phase, matchState?.roundDeadline, matchState?.status]);
+  }, [matchState?.roundDeadline, now]);
 
   const persistSession = useCallback((next: {
     roomCode?: string;
@@ -115,6 +119,9 @@ export default function Home() {
     setMatchState(null);
     setSelectedChoice(null);
     setFatalError("");
+    setRoundAnnounce(null);
+    lastRoundCount.current = 0;
+    if (announceTimeout.current) clearTimeout(announceTimeout.current);
     setMessage("Connection severed. Ready for new sync.");
     setPhase("home");
   }, []);
@@ -149,6 +156,19 @@ export default function Home() {
     if (!matchId || !sessionId) return;
     try {
       const data = await api<MatchState>(`/api/match/${matchId}?sessionId=${sessionId}`);
+      
+      if (data.rounds.length > lastRoundCount.current && data.rounds.length > 0) {
+        lastRoundCount.current = data.rounds.length;
+        if (data.status === "ongoing") {
+          if (announceTimeout.current) clearTimeout(announceTimeout.current);
+          setRoundAnnounce(data.currentRound);
+          announceTimeout.current = setTimeout(() => setRoundAnnounce(null), 4000);
+        }
+      } else if (data.status === "ongoing" && lastRoundCount.current === 0 && data.currentRound === 1 && !announceTimeout.current && !data.myChoice) {
+        setRoundAnnounce(1);
+        announceTimeout.current = setTimeout(() => setRoundAnnounce(null), 4000);
+      }
+
       setMatchState(data);
       // Only keep local selection if we haven't received opponent choice
       if (data.myChoice) setSelectedChoice(data.myChoice);
@@ -572,6 +592,15 @@ export default function Home() {
                       <p className="text-[10px] font-bold tracking-[0.4em] text-neutral-500 uppercase">
                         Select Directive
                       </p>
+
+                      {roundAnnounce !== null && (
+                        <div className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-neutral-900/90 backdrop-blur-xl animate-in fade-in duration-300">
+                          <h3 className="text-xl font-bold uppercase tracking-[0.4em] text-cyan-500 mb-4">Starting Round</h3>
+                          <p className="text-8xl font-black text-white tracking-widest drop-shadow-[0_0_40px_rgba(34,211,238,0.8)] animate-pulse">
+                            {roundAnnounce}
+                          </p>
+                        </div>
+                      )}
                       
                       {selectedChoice ? (
                         <div className="py-12 relative">
@@ -588,10 +617,10 @@ export default function Home() {
                           </p>
                         </div>
                       ) : (
-                        <div className="grid grid-cols-2 gap-6">
+                        <div className="grid grid-cols-2 gap-6 relative">
                           <button
                             onClick={() => handleChoice("cooperate")}
-                            disabled={loading || !!matchState.myChoice}
+                            disabled={loading || !!matchState.myChoice || roundAnnounce !== null}
                             className="group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-cyan-500/40 bg-cyan-500/10 p-10 pt-12 shadow-[0_0_30px_rgba(34,211,238,0.05)] transition-all hover:-translate-y-1 hover:bg-cyan-500/20 hover:shadow-[0_10px_40px_rgba(34,211,238,0.3)] hover:border-cyan-400 disabled:opacity-50 disabled:hover:translate-y-0"
                           >
                             <span className="text-2xl font-black tracking-[0.25em] text-cyan-300 uppercase drop-shadow-[0_0_10px_rgba(34,211,238,0.5)] group-hover:text-white transition-colors">
@@ -604,7 +633,7 @@ export default function Home() {
                           
                           <button
                             onClick={() => handleChoice("betray")}
-                            disabled={loading || !!matchState.myChoice}
+                            disabled={loading || !!matchState.myChoice || roundAnnounce !== null}
                             className="group relative flex flex-col items-center justify-center overflow-hidden rounded-2xl border border-fuchsia-500/40 bg-fuchsia-500/10 p-10 pt-12 shadow-[0_0_30px_rgba(217,70,239,0.05)] transition-all hover:-translate-y-1 hover:bg-fuchsia-500/20 hover:shadow-[0_10px_40px_rgba(217,70,239,0.3)] hover:border-fuchsia-400 disabled:opacity-50 disabled:hover:translate-y-0"
                           >
                             <span className="text-2xl font-black tracking-[0.25em] text-fuchsia-300 uppercase drop-shadow-[0_0_10px_rgba(217,70,239,0.5)] group-hover:text-white transition-colors">

@@ -131,7 +131,7 @@ export async function POST(req: NextRequest) {
         match.currentRound += 1;
         match.player1Choice = undefined;
         match.player2Choice = undefined;
-        match.roundDeadline = new Date(Date.now() + 8000);
+        match.roundDeadline = new Date(Date.now() + 13000);
       }
 
       await match.save();

@@ -70,7 +70,7 @@ export async function GET(
                 ? { status: "completed" }
                 : {
                     currentRound: intendedRound + 1,
-                    roundDeadline: new Date(Date.now() + 8000),
+                    roundDeadline: new Date(Date.now() + 13000),
                   }),
             },
             $push: {
